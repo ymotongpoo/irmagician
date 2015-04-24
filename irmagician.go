@@ -1,10 +1,7 @@
-package main
+package irmagician
 
 import (
-	"bufio"
 	"fmt"
-	"io"
-	"log"
 	"strconv"
 	"time"
 
@@ -14,7 +11,7 @@ import (
 const (
 	DefaultTimeout  = 1 * time.Second
 	DefaultBaudRate = 9600
-	DefaultWait     = 3 * time.Second
+	DefaultWait     = 1 * time.Second
 	BufferSize      = 640
 )
 
@@ -24,10 +21,18 @@ type IrMagician struct {
 }
 
 func NewIrMagician(name string, rate int, timeout time.Duration) (*IrMagician, error) {
-	c := &serial.Config{
-		Name:        name,
-		Baud:        rate,
-		ReadTimeout: timeout,
+	var c *serial.Config
+	if timeout == 0 {
+		c = &serial.Config{
+			Name: name,
+			Baud: rate,
+		}
+	} else {
+		c = &serial.Config{
+			Name:        name,
+			Baud:        rate,
+			ReadTimeout: timeout,
+		}
 	}
 	s, err := serial.OpenPort(c)
 	if err != nil {
@@ -36,17 +41,20 @@ func NewIrMagician(name string, rate int, timeout time.Duration) (*IrMagician, e
 	return &IrMagician{c, s}, nil
 }
 
-func (ir *IrMagician) writeread(command string) ([]byte, error) {
+func (ir *IrMagician) writeread(command string, waitsec int) ([]byte, error) {
 	_, err := ir.s.Write([]byte(command))
 	if err != nil {
 		return nil, err
+	}
+	if waitsec != 0 {
+		time.Sleep(time.Duration(waitsec) * time.Second)
 	}
 	buf := make([]byte, BufferSize)
 	n, err := ir.s.Read(buf)
 	if err != nil {
 		return nil, err
 	}
-	return buf[:n], err
+	return buf[:n], nil
 }
 
 func (ir *IrMagician) BankSet(n int) error {
@@ -66,26 +74,19 @@ func (ir *IrMagician) Capture() ([]byte, error) {
 		return nil, err
 	}
 	time.Sleep(DefaultWait)
-	reader := bufio.NewReader(ir.s)
 	buf := make([]byte, BufferSize)
-	for {
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			break
-		}
-		copy(buf[len(line):], line)
-	}
-	if err != io.EOF {
+	n, err := ir.s.Read(buf)
+	if err != nil {
 		return nil, err
 	}
-	return buf, nil
+	return buf[:n], nil
 }
 
 func (ir *IrMagician) Dump(n int) ([]byte, error) {
 	if n > 63 || n < 0 {
 		return nil, fmt.Errorf("Dump: %v is out of memory number range (0-63)", n)
 	}
-	resp, err := ir.writeread("d," + strconv.Itoa(n) + "\r\n")
+	resp, err := ir.writeread("d,"+strconv.Itoa(n)+"\r\n", 0)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +97,7 @@ func (ir *IrMagician) Information(param int) ([]byte, error) {
 	if param > 7 || param < 0 {
 		return nil, fmt.Errorf("Information: %v is out of parameter range (0-7)", param)
 	}
-	resp, err := ir.writeread("i," + strconv.Itoa(param) + "\r\n")
+	resp, err := ir.writeread("I,"+strconv.Itoa(param)+"\r\n", 1)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ func (ir *IrMagician) SetPostScaler(v int) ([]byte, error) {
 	if v > 255 || v < 1 {
 		return nil, fmt.Errorf("SetPostScaler: %v is out of value range (1-255)", v)
 	}
-	resp, err := ir.writeread("k," + strconv.Itoa(v) + "\r\n")
+	resp, err := ir.writeread("k,"+strconv.Itoa(v)+"\r\n", 0)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +120,7 @@ func (ir *IrMagician) LED(on bool) ([]byte, error) {
 	if on {
 		toggle = "1"
 	}
-	resp, err := ir.writeread("L," + toggle + "\r\n")
+	resp, err := ir.writeread("L,"+toggle+"\r\n", 0)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +131,7 @@ func (ir *IrMagician) Modulation(param int) ([]byte, error) {
 	if param > 2 || param < 0 {
 		return nil, fmt.Errorf("Modulation: %v is out of paramter options (0,1,2)")
 	}
-	resp, err := ir.writeread("m," + strconv.Itoa(param) + "\r\n")
+	resp, err := ir.writeread("m,"+strconv.Itoa(param)+"\r\n", 0)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +144,7 @@ func (ir *IrMagician) SetRecordPointer(point int) ([]byte, error) {
 }
 
 func (ir *IrMagician) Play() ([]byte, error) {
-	resp, err := ir.writeread("P\r\n")
+	resp, err := ir.writeread("P\r\n", 0)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +155,7 @@ func (ir *IrMagician) Reset(n int) ([]byte, error) {
 	if n > 1 || n < 0 {
 		return nil, fmt.Errorf("Reset: %v is not in options (0, 1)", n)
 	}
-	resp, err := ir.writeread("R," + strconv.Itoa(n) + "\r\n")
+	resp, err := ir.writeread("R,"+strconv.Itoa(n)+"\r\n", 1)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +163,7 @@ func (ir *IrMagician) Reset(n int) ([]byte, error) {
 }
 
 func (ir *IrMagician) Version() ([]byte, error) {
-	resp, err := ir.writeread("V\r\n")
+	resp, err := ir.writeread("V\r\n", 1)
 	if err != nil {
 		return nil, err
 	}
@@ -178,32 +179,4 @@ func (ir *IrMagician) Write(pos int, data byte) error {
 		return err
 	}
 	return nil
-}
-
-func main() {
-	ir, err := NewIrMagician("/dev/ttyACM0", 9600, DefaultTimeout)
-	if err != nil {
-		log.Fatal(err)
-	}
-	/*
-		captured, err := ir.Capture()
-		if err != nil {
-			log.Fatal(err)
-		}
-	*/
-	v, err := ir.Version()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("%q", v)
-	out, err := ir.LED(true)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("%q", out)
-	out2, err := ir.LED(false)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("%q", out2)
 }
