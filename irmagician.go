@@ -41,13 +41,13 @@ func NewIrMagician(name string, rate int, timeout time.Duration) (*IrMagician, e
 	return &IrMagician{c, s}, nil
 }
 
-func (ir *IrMagician) writeread(command string, waitsec int) ([]byte, error) {
+func (ir *IrMagician) writeread(command string, waitmsec int) ([]byte, error) {
 	_, err := ir.s.Write([]byte(command))
 	if err != nil {
 		return nil, err
 	}
-	if waitsec != 0 {
-		time.Sleep(time.Duration(waitsec) * time.Second)
+	if waitmsec != 0 {
+		time.Sleep(time.Duration(waitmsec) * time.Millisecond)
 	}
 	buf := make([]byte, BufferSize)
 	n, err := ir.s.Read(buf)
@@ -97,7 +97,7 @@ func (ir *IrMagician) Information(param int) ([]byte, error) {
 	if param > 7 || param < 0 {
 		return nil, fmt.Errorf("Information: %v is out of parameter range (0-7)", param)
 	}
-	resp, err := ir.writeread("I,"+strconv.Itoa(param)+"\r\n", 1)
+	resp, err := ir.writeread("I,"+strconv.Itoa(param)+"\r\n", 5)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (ir *IrMagician) SetPostScaler(v int) ([]byte, error) {
 	if v > 255 || v < 1 {
 		return nil, fmt.Errorf("SetPostScaler: %v is out of value range (1-255)", v)
 	}
-	resp, err := ir.writeread("k,"+strconv.Itoa(v)+"\r\n", 0)
+	resp, err := ir.writeread("k,"+strconv.Itoa(v)+"\r\n", 5)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (ir *IrMagician) LED(on bool) ([]byte, error) {
 	if on {
 		toggle = "1"
 	}
-	resp, err := ir.writeread("L,"+toggle+"\r\n", 0)
+	resp, err := ir.writeread("L,"+toggle+"\r\n", 5)
 	if err != nil {
 		return nil, err
 	}
@@ -139,12 +139,18 @@ func (ir *IrMagician) Modulation(param int) ([]byte, error) {
 }
 
 func (ir *IrMagician) SetRecordPointer(point int) ([]byte, error) {
-	// TODO: Implement me.
-	return nil, nil
+	if point < 0 {
+		return nil, fmt.Errorf("SetRecordPointer: point must be unsigned.")
+	}
+	resp, err := ir.writeread("n,"+strconv.Itoa(point)+"\r\n", 2)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (ir *IrMagician) Play() ([]byte, error) {
-	resp, err := ir.writeread("P\r\n", 0)
+	resp, err := ir.writeread("P\r\n", 2)
 	if err != nil {
 		return nil, err
 	}
@@ -174,9 +180,14 @@ func (ir *IrMagician) Write(pos int, data byte) error {
 	if pos > 63 || pos < 0 {
 		return fmt.Errorf("Write: %v is out of memory position range (0-63)", pos)
 	}
-	_, err := ir.s.Write([]byte("W," + strconv.Itoa(pos) + "," + string(data)))
+	_, err := ir.s.Write([]byte("w," + strconv.Itoa(pos) + "," + string(data) + "\n\r"))
+	//time.Sleep(2 * time.Millisecond)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (ir *IrMagician) Close() {
+	ir.s.Close()
 }
