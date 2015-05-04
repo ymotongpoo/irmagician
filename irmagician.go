@@ -2,6 +2,7 @@ package irmagician
 
 import (
 	"fmt"
+	_ "log"
 	"strconv"
 	"time"
 
@@ -42,6 +43,7 @@ func NewIrMagician(name string, rate int, timeout time.Duration) (*IrMagician, e
 }
 
 func (ir *IrMagician) writeread(command string, waitmsec int) ([]byte, error) {
+	//log.Println(command)
 	_, err := ir.s.Write([]byte(command))
 	if err != nil {
 		return nil, err

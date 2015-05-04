@@ -76,25 +76,27 @@ func playData(ir *irmagician.IrMagician, path string) error {
 	}
 	log.Printf("playData: postscaler set, %v", string(resp))
 	log.Printf("length of data :%v", len(dump.Data))
-	for i, b := range dump.Data {
-		bank := i / 64
-		pos := i % 64
-		if pos == 0 {
-			err = ir.BankSet(bank)
+	/*
+		for i, b := range dump.Data {
+			bank := i / 64
+			pos := i % 64
+			if pos == 0 {
+				err = ir.BankSet(bank)
+				if err != nil {
+					return fmt.Errorf("playData: in BankSet, %v", err)
+				}
+			}
+			err = ir.Write(pos, b)
 			if err != nil {
-				return fmt.Errorf("playData: in BankSet, %v", err)
+				return fmt.Errorf("playData: in Write, %v", err)
 			}
 		}
-		err = ir.Write(pos, b)
+		out, err := ir.Play()
 		if err != nil {
-			return fmt.Errorf("playData: in Write, %v", err)
+			return fmt.Errorf("playData: in Play, %v", err)
 		}
-	}
-	out, err := ir.Play()
-	if err != nil {
-		return fmt.Errorf("playData: in Play, %v", err)
-	}
-	log.Printf("playData: Out, %v", string(out))
+		log.Printf("playData: Out, %v", string(out))
+	*/
 	return nil
 }
 
