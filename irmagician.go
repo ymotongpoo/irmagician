@@ -152,7 +152,7 @@ func (ir *IrMagician) SetRecordPointer(point int) ([]byte, error) {
 }
 
 func (ir *IrMagician) Play() ([]byte, error) {
-	resp, err := ir.writeread("P\r\n", 2)
+	resp, err := ir.writeread("p\r\n", 2)
 	if err != nil {
 		return nil, err
 	}
@@ -182,8 +182,8 @@ func (ir *IrMagician) Write(pos int, data byte) error {
 	if pos > 63 || pos < 0 {
 		return fmt.Errorf("Write: %v is out of memory position range (0-63)", pos)
 	}
-	_, err := ir.s.Write([]byte("w," + strconv.Itoa(pos) + "," + string(data) + "\n\r"))
-	//time.Sleep(2 * time.Millisecond)
+	buf := fmt.Sprintf("w,%d,%d\r\n", pos, data)
+	_, err := ir.s.Write([]byte(buf))
 	if err != nil {
 		return err
 	}
