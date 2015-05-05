@@ -1,6 +1,7 @@
 package irmagician
 
 import (
+	"encoding/json"
 	"fmt"
 	_ "log"
 	"strconv"
@@ -192,4 +193,38 @@ func (ir *IrMagician) Write(pos int, data byte) error {
 
 func (ir *IrMagician) Close() {
 	ir.s.Close()
+}
+
+func (ir *IrMagician) PlayData(data []byte) ([]byte, error) {
+	var dump Dump
+	if err := json.Unmarshal(data, &dump); err != nil {
+		return nil, err
+	}
+	_, err := ir.SetRecordPointer(len(dump.Data))
+	if err != nil {
+		return nil, err
+	}
+	_, err = ir.SetPostScaler(dump.Scale)
+	if err != nil {
+		return nil, err
+	}
+	for i, b := range dump.Data {
+		bank := i / 64
+		pos := i % 64
+		if pos == 0 {
+			err = ir.BankSet(bank)
+			if err != nil {
+				return nil, err
+			}
+		}
+		err = ir.Write(pos, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+	resp, err := ir.Play()
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }

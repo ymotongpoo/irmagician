@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"time"
@@ -60,44 +59,11 @@ func playData(ir *irmagician.IrMagician, path string) error {
 	if err != nil {
 		return err
 	}
-	var dump irmagician.Dump
-	err = json.Unmarshal(data, &dump)
+	out, err := ir.PlayData(data)
 	if err != nil {
-		return fmt.Errorf("playData: Unmarshal, %v", err)
+		return err
 	}
-	resp, err := ir.SetRecordPointer(len(dump.Data))
-	if err != nil {
-		return fmt.Errorf("playData: SetRecordPointer, %v", err)
-	}
-	log.Printf("playData: record pointer set, %v", string(resp))
-	resp, err = ir.SetPostScaler(dump.Scale)
-	if err != nil {
-		return fmt.Errorf("playData: SetPostScaler, %v", err)
-	}
-	log.Printf("playData: postscaler set, %v", string(resp))
-	log.Printf("length of data :%v", len(dump.Data))
-
-	for i, b := range dump.Data {
-		bank := i / 64
-		pos := i % 64
-		if pos == 0 {
-			err = ir.BankSet(bank)
-			if err != nil {
-				return fmt.Errorf("playData: in BankSet, %v", err)
-			}
-		}
-		err = ir.Write(pos, b)
-		if err != nil {
-			return fmt.Errorf("playData: in Write, %v", err)
-		}
-	}
-
-	out, err := ir.Play()
-	if err != nil {
-		return fmt.Errorf("playData: in Play, %v", err)
-	}
-	time.Sleep(100 * time.Millisecond)
-	log.Printf("playData: Out, %v", string(out))
+	log.Println(string(out))
 	return nil
 }
 
