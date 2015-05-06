@@ -1,36 +1,71 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 
 	"bitbucket.org/ymotongpoo/irmagician"
 )
 
-type ApiHandler struct {
-	ir *irmagician.NewIrMagician
-}
+var (
+	mux       *http.ServeMux
+	fileCache = make(map[string][]byte)
+	files     = []string{"on.json", "off.json"}
+)
 
-func (a *ApiHandler) NewApiHandler() ApiHandler {
-	a.ir = irmagician.NewIrMagician("/dev/ttyACM0", 9600, irmagician.DefaultTimeout)
-}
-
-func (a *ApiHander) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-}
-
-func init() {
-
-	mux := http.NewServeMux()
-	mux.Handle("/api/", apiHandler{})
-	mux.HandleFunc("/", http.FileServer(http.Dir("/static")))
+type APIRequest struct {
+	Power bool `json:"power"`
 }
 
 func main() {
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/push/v1", pushV1Handler)
+	mux.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./static"))))
+
+	cwd, err := os.Getcwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, f := range files {
+		data, err := ioutil.ReadFile(filepath.Join(filepath.Join(cwd, "json"), f))
+		if err != nil {
+			log.Fatal(err)
+		}
+		fileCache[f] = data
+	}
+
+	if err := http.ListenAndServe(":8080", mux); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func rootHandler(w http.ResponserWriter, r *http.Request) {
-
+func pushV1Handler(w http.ResponseWriter, r *http.Request) {
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	log.Println(string(data))
+	var req APIRequest
+	err = json.Unmarshal(data, &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	ir, err := irmagician.NewIrMagician("/dev/ttyACM0", 9600, 1*time.Second)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	var resp []byte
+	switch {
+	case req.Power:
+		resp, err = ir.PlayData(fileCache["on.json"])
+	case !req.Power:
+		resp, err = ir.PlayData(fileCache["off.json"])
+	}
+	fmt.Fprintf(w, string(resp))
 }

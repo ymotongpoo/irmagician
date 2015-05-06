@@ -1,0 +1,21 @@
+{
+  "name": "airconui",
+  "version": "0.0.0",
+  "authors": [
+    "Yoshifumi YAMAGUCHI <ymotongpoo@gmail.com>"
+  ],
+  "description": "web front end to control irmagician",
+  "main": "index.html",
+  "license": "APL2",
+  "homepage": "http://github.com/ymotongpoo/irmagician",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^0.5"
+  }
+}
