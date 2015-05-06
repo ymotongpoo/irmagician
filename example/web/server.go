@@ -28,7 +28,7 @@ func main() {
 	mux.HandleFunc("/api/push/v1", pushV1Handler)
 	mux.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./static"))))
 
-	cwd, err := os.Getcwd()
+	cwd, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
