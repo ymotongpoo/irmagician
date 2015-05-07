@@ -23,36 +23,33 @@
       </core-header-panel>
       <div tool>Air Conditoner</div>
       <div class="content">
-        <template>
-          <paper-button raised on-click={{airconOn}}>On</paper-button>
-          <paper-button raised on-click={{airconOff}}>Off</paper-button>
-          <core-ajax url="//api/push/v1"
-                     id="ajax"
-                     params='{"power": {{airconStatus}}}'
-                     handleAs="json"
-                     on-core-response="{{handleResponse}}"></core-ajax>
+        <core-ajax url="/api/push/v1"
+                   method='POST'
+                   handleAs='json'
+                   on-core-response="{{handleResponse}}"></core-ajax>
+
+        <template id="airconUI" is="auto-binding"> 
+          <paper-button raised on-tap="{{airconOn}}">On</paper-button>
+          <paper-button raised on-tap="{{airconOff}}">Off</paper-button>
         </template>
       </div>
 
     </core-scaffold>
     <script>
-     document.addEventListener('polymer-ready', function() {
-       var ajax = document.getElementById('ajax');
-       document.querySelector('template').model = {
-         airconStatus: false,
-         airconOn: function() {
-           this.$.airconStatus = true;
-           ajax.go();
-         },
-         airconOff: function() {
-           this.$.airconStatus = false;
-           ajax.go();
-         },
-         handleResponse: function(e) {
-           console.log(e);
-         }
-       };
-     });
+     var template = document.querySelector("template#airconUI");
+     var ajax = document.querySelector('core-ajax');
+     template.airconStatus = false;
+     template.airconOn = function(e) {
+       ajax.body='{"power": true}'
+       ajax.go();
+     };
+     template.airconOff = function(e) {
+       ajax.body='{"power": false}'
+       ajax.go();
+     };
+     ajax.handleResponse = function(e) {
+       console.log(e);
+     };
     </script>
   </body>
 </html>
