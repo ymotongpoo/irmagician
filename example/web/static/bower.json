@@ -22,6 +22,7 @@
     "core-toolbar": "Polymer/core-toolbar#^0.5",
     "core-scaffold": "Polymer/core-scaffold#^0.5",
     "core-item": "Polymer/core-item#^0.5",
-    "paper-button": "Polymer/paper-button#^0.5"
+    "paper-button": "Polymer/paper-button#^0.5",
+    "core-ajax": "Polymer/core-ajax#^0.5"
   }
 }
