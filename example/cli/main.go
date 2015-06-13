@@ -8,7 +8,7 @@ import (
 	"log"
 	"time"
 
-	"bitbucket.org/ymotongpoo/irmagician"
+	"github.com/ymotongpoo/irmagician"
 )
 
 var (

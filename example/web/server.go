@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"bitbucket.org/ymotongpoo/irmagician"
+	"github.com/ymotongpoo/irmagician"
 )
 
 var (
